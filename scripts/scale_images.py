@@ -2,93 +2,57 @@ import json
 import os
 from PIL import Image
 
-
-def scale_annotations(points, original_size, new_size):
-    orig_w, orig_h = original_size
-    new_w, new_h = new_size
-
-    scale_x = new_w / orig_w
-    scale_y = new_h / orig_h
-
-    return [
-        points[0] * scale_x, points[1] * scale_y,
-        points[2] * scale_x, points[3] * scale_y
-    ]
-
-def process_task(task_path, target_size):
-    cropped_images_dir = os.path.join(task_path, 'cropped_images')
-    annotations_json_path = os.path.join(task_path, 'cropped_annotations.json')
-
-    if not (os.path.exists(cropped_images_dir) and os.path.exists(annotations_json_path)):
-        print(f"Skipping {task_path}, required files not found.")
-        return
-
-    # Output paths
-    output_image_dir = os.path.join(task_path, 'scaled_images')
-    output_json_path = os.path.join(task_path, 'scaled_annotations.json')
-    os.makedirs(output_image_dir, exist_ok=True)
-
-    # Load annotations
-    with open(annotations_json_path, 'r') as f:
-        annotations = json.load(f)
-
-    # Create a dictionary to store the shapes for each frame
-    frame_shapes = {}
-    for item in annotations:
-        for shape in item['shapes']:
-            frame = shape['frame']
-            if frame not in frame_shapes:
-                frame_shapes[frame] = []
-            frame_shapes[frame].append(shape)
-
-    updated_annotations = []
-
-    for frame, shapes in frame_shapes.items():
-        file_name = f'{frame}_cropped.jpg'
-        image_path = os.path.join(cropped_images_dir, file_name)
-
-        if not os.path.exists(image_path):
-            print(f"Image for frame {frame} not found.")
-            continue
-
-        try:
-            # Resize image
-            image = Image.open(image_path)
-            original_size = image.size
-            resized_image = image.resize(target_size)
-            resized_image.save(os.path.join(output_image_dir, f'{frame}_scaled.jpg'))
-
-            # Scale bounding box
-            updated_shapes = []
-            for shape in shapes:
-                updated_shape = shape.copy()
-                updated_shape['points'] = scale_annotations(
-                    shape['points'], original_size, target_size
-                )
-                updated_shapes.append(updated_shape)
-
-            updated_annotations.append({
-                'frame': frame,
-                'shapes': updated_shapes
-            })
-        except Exception as e:
-            print(f"Error processing frame {frame}: {e}")
-            continue
-
-    # Save updated annotations
-    with open(output_json_path, 'w') as f:
-        json.dump(updated_annotations, f, indent=4)
-
-    print(f"Processed {task_path} successfully!")
-
-
-if __name__ == "__main__":
-    dataset_dir = r'//dataset'
-    target_size = (180, 180)
-
+def scale_images_and_annotations(dataset_dir, target_width, target_height):
     for task_folder in os.listdir(dataset_dir):
         task_path = os.path.join(dataset_dir, task_folder)
-        if os.path.isdir(task_path):
-            process_task(task_path, target_size)
 
-    print("All tasks processed successfully!")
+        if os.path.isdir(task_path):
+            cropped_images_dir = os.path.join(task_path, 'cropped_images')
+            cropped_annotations_path = os.path.join(task_path, 'cropped_annotations.json')
+
+            if os.path.exists(cropped_images_dir) and os.path.exists(cropped_annotations_path):
+                print(f"Processing scaling for task: {task_folder}")
+
+                scaled_images_dir = os.path.join(task_path, 'scaled_images')
+                scaled_annotations_path = os.path.join(task_path, 'scaled_annotations.json')
+
+                os.makedirs(scaled_images_dir, exist_ok=True)
+
+                with open(cropped_annotations_path, 'r') as f:
+                    annotations = json.load(f)
+
+                # Copy annotations to maintain the original hierarchy
+                updated_annotations = annotations.copy()
+
+                # Scaling factor
+                scale_x = target_width / 1080
+                scale_y = target_height / 1080
+
+                for track in updated_annotations[0]['tracks']:
+                    for shape in track['shapes']:
+                        # Scale bounding box coordinates
+                        x_min, y_min, x_max, y_max = shape['points']
+                        shape['points'] = [
+                            x_min * scale_x, y_min * scale_y,
+                            x_max * scale_x, y_max * scale_y
+                        ]
+
+                for file_name in os.listdir(cropped_images_dir):
+                    if file_name.endswith('.jpg'):
+                        image_path = os.path.join(cropped_images_dir, file_name)
+                        image = Image.open(image_path)
+
+                        # Resize the image using LANCZOS filter (replacing ANTIALIAS)
+                        scaled_image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                        scaled_image.save(os.path.join(scaled_images_dir, file_name))
+
+                # Save updated annotations
+                with open(scaled_annotations_path, 'w') as f:
+                    json.dump(updated_annotations, f, indent=4)
+
+                print(f"Scaling completed for task: {task_folder}")
+
+if __name__ == "__main__":
+    dataset_dir = r'/Users/abdulkadir/Documents/AIN313 Machine Learning/AIN311_Project/dataset'
+    target_width, target_height = 180, 180
+    scale_images_and_annotations(dataset_dir, target_width, target_height)

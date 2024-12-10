@@ -2,11 +2,7 @@ import json
 import os
 from PIL import Image
 
-if __name__ == "__main__":
-    dataset_dir = r'/Users/abdulkadir/Documents/AIN313 Machine Learning/AIN313_Project/dataset'
-
-    fixed_width, fixed_height = 1080, 1080
-
+def crop_annotations_and_images(dataset_dir, fixed_width, fixed_height):
     for task_folder in os.listdir(dataset_dir):
         task_path = os.path.join(dataset_dir, task_folder)
 
@@ -25,13 +21,14 @@ if __name__ == "__main__":
                 with open(annotations_json_path, 'r') as f:
                     annotations = json.load(f)
 
-                updated_annotations = []
+                # Copy the entire annotations structure to maintain hierarchy
+                updated_annotations = annotations.copy()
 
-                for track in annotations[0]['tracks']:
+                for track in updated_annotations[0]['tracks']:
                     for shape in track['shapes']:
                         frame = shape['frame']
 
-                        if shape['outside']:
+                        if shape.get('outside'):
                             continue
 
                         file_name = f'frame_{frame:05}.jpg'
@@ -46,6 +43,7 @@ if __name__ == "__main__":
 
                         x_min, y_min, x_max, y_max = shape['points']
 
+                        # Calculate crop coordinates
                         center_x = (x_min + x_max) / 2
                         center_y = (y_min + y_max) / 2
 
@@ -62,23 +60,23 @@ if __name__ == "__main__":
                             crop_y_min = max(0, crop_y_max - fixed_height)
                             crop_y_max = crop_y_min + fixed_height
 
-                        updated_shape = shape.copy()
-                        updated_shape['points'] = [
+                        # Update shape coordinates relative to the cropped region
+                        shape['points'] = [
                             x_min - crop_x_min, y_min - crop_y_min,
                             x_max - crop_x_min, y_max - crop_y_min
                         ]
 
-                        updated_track = track.copy()
-                        updated_track['shapes'] = [updated_shape]
-
+                        # Save cropped image
                         cropped_image = image.crop((crop_x_min, crop_y_min, crop_x_max, crop_y_max))
                         cropped_image.save(os.path.join(output_image_dir, f'{frame}_cropped.jpg'))
 
-                        updated_annotations.append(updated_track)
-
+                # Save updated annotations
                 with open(output_json_path, 'w') as f:
                     json.dump(updated_annotations, f, indent=4)
 
                 print(f"Processed task: {task_folder} successfully!")
 
-    print("All tasks processed successfully!")
+if __name__ == "__main__":
+    dataset_dir = r'/Users/abdulkadir/Documents/AIN313 Machine Learning/AIN311_Project/dataset'
+    fixed_width, fixed_height = 1080, 1080
+    crop_annotations_and_images(dataset_dir, fixed_width, fixed_height)
