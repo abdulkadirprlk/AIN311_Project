@@ -29,7 +29,7 @@ def visualize_bboxes(image_path, bboxes, title="Bounding Boxes"):
     for bbox in bboxes:
         x_min, y_min, x_max, y_max = bbox
 
-        # Calculate width and height of the bounding box
+        # width and height of the bounding box
         bbox_width = x_max - x_min
         bbox_height = y_max - y_min
 
@@ -41,13 +41,11 @@ def visualize_bboxes(image_path, bboxes, title="Bounding Boxes"):
 
         # Add the patch to the axes
         ax.add_patch(rect)
-
-    # Show the plot
+        
     plt.show()
 
 
 if __name__ == "__main__":
-    # Example usage
     image_path = '/Users/abdulkadir/Documents/AIN313 Machine Learning/AIN313_Project/dataset/task_kam2_gh078416/cropped_images/653_cropped.jpg'
     bboxes = [[
                             459.2001953125,
