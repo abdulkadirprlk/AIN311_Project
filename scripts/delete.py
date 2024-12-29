@@ -4,7 +4,8 @@ import shutil
 def delete_scaled_files_and_folders(folder_path):
     """
     Deletes all scaled_annotations.json files and scaled_images folders
-    inside the specified folder and its subdirectories.
+    inside the specified folder and its subdirectories. 
+    This function can be used in case of wrong file creations.
 
     Parameters:
     - folder_path: Path to the main folder to search in.
