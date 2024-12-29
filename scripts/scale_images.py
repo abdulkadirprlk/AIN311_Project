@@ -42,7 +42,7 @@ def scale_images_and_annotations(dataset_dir, target_width, target_height):
                         image_path = os.path.join(cropped_images_dir, file_name)
                         image = Image.open(image_path)
 
-                        # Resize the image using LANCZOS filter (replacing ANTIALIAS)
+                        # Resize the image using LANCZOS filter
                         scaled_image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
                         scaled_image.save(os.path.join(scaled_images_dir, file_name))
 
